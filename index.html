@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Disaster Management System & Location Finder</title>
+    <style>
+        /* General Reset and Font */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background-color: #f4f6f9;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    color: #333;
+}
+
+/* Main container */
+.container {
+    max-width: 900px; /* Increased max-width for container */
+    width: 100%; /* Allow the container to take full width */
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Header */
+h1 {
+    text-align: center;
+    color: #007acc;
+    margin-bottom: 20px;
+}
+
+/* Navigation */
+nav {
+    width: 100%; /* Ensure nav takes full width of the container */
+    display: flex;
+    justify-content: center;
+    background-color: #007acc;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    padding: 10px 0; /* Adjusted padding for better spacing */
+}
+
+nav a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: bold;
+    margin: 0 15px; /* Added spacing between links */
+    padding: 8px 12px; /* Padding around each link */
+    border-radius: 4px;
+    border: 2px solid transparent; /* Border for buttons */
+    transition: background-color 0.3s, border-color 0.3s; /* Transition for hover effect */
+}
+
+nav a:hover {
+    color: #ffd700;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: #ffd700; /* Change border color on hover */
+}
+
+nav a.active {
+    border-color: #ffd700; /* Active link border color */
+    background-color: rgba(255, 255, 255, 0.2); /* Active link background color */
+}
+
+/* Buttons */
+button {
+    background-color: #007acc;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 10px;
+}
+
+button:hover {
+    background-color: #005ea6;
+}
+
+/* Information display sections */
+.info-box {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    margin-top: 10px;
+    font-size: 16px;
+    text-align: center;
+}
+
+#gps-coordinates,
+#location,
+#address {
+    margin-top: 15px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    background-color: #e8f0fe;
+    border-radius: 5px;
+    color: #555;
+}
+
+#gps-coordinates {
+    font-weight: bold;
+}
+
+    </style>
+    <script>
+        const apiKey = '0c4c1ac843db45bcb46b3ed584cad4e5'; // Replace with your OpenCage API key
+
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition, showError);
+            } else {
+                document.getElementById("location").innerHTML = "Geolocation is not supported by this browser.";
+            }
+        }
+
+        function showPosition(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            document.getElementById("gps-coordinates").innerText = `Latitude: ${lat}, Longitude: ${lon}`;
+            document.getElementById("location").innerHTML = `Latitude: ${lat}<br>Longitude: ${lon}`;
+            
+            // Save to Local Storage
+            localStorage.setItem('lastKnownLocation', JSON.stringify({ latitude: lat, longitude: lon }));
+
+            // Call the reverse geocoding function using OpenCage
+            reverseGeocode(lat, lon);
+        }
+
+        function reverseGeocode(lat, lon) {
+            const url = `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lon}&key=${apiKey}`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.results && data.results.length > 0) {
+                        const address = data.results[0].formatted;
+                        document.getElementById("address").innerText = `Exact Location: ${address}`;
+                    } else {
+                        document.getElementById("address").innerText = "Unable to retrieve address.";
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function showError(error) {
+            let msg = "";
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    msg = "User denied the request for Geolocation.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    msg = "Location information is unavailable.";
+                    break;
+                case error.TIMEOUT:
+                    msg = "The request to get user location timed out.";
+                    break;
+                case error.UNKNOWN_ERROR:
+                    msg = "An unknown error occurred.";
+                    break;
+            }
+            document.getElementById("location").innerHTML = msg;
+        }
+
+        function loadLastKnownLocation() {
+            const lastLocation = localStorage.getItem('lastKnownLocation');
+            if (lastLocation) {
+                const { latitude, longitude } = JSON.parse(lastLocation);
+                document.getElementById("gps-coordinates").innerText = `Last Known Location - Latitude: ${latitude}, Longitude: ${longitude}`;
+            }
+        }
+
+        window.onload = loadLastKnownLocation;
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Disaster Management System</h1>
+        <nav>
+            <a href="/" class="active">Home</a> <!-- Active link for Home -->
+            <a href="/disasters">View Disasters</a>
+            <a href="/add-disaster">Add Disaster</a>
+            <a href="/resources">View Resources</a>
+            <a href="/volunteers">View Volunteers</a>
+            <a href="/emergency-contacts">Emergency Contacts</a>
+            <a href="/donations">Donate</a> <!-- New Donations Link -->
+        </nav>
+        
+        <h2>GPS Location</h2>
+        <button onclick="getLocation()">Get Current Location</button>
+        <div id="gps-coordinates" class="info-box">Your GPS coordinates will appear here.</div>
+        <div id="location" class="info-box">Last known location will load here if available.</div>
+        <div id="address" class="info-box">Exact address will appear here.</div>
+    </div>
+</body>
+</html>
+
